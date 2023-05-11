@@ -10,7 +10,6 @@ async def handler(reader, writer):
     writer.write(response.encode())
     await writer.drain()
 
-    # why does server need to close the connection?
     writer.close()
     await writer.wait_closed()
     print(f"Server closed the connection from {addr}")

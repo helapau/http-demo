@@ -4,7 +4,8 @@ async def main():
     reader, writer = await asyncio.open_connection(
         "hela-httpbin.fly.dev", 80)
 
-    # why does there need to be \r\n at the very end?
+    # why does there need to be \r\n at the very end? -> this is the SPEC!
+    # HOST: is the 1st (and the only) header
     request = "GET /get HTTP/1.0\r\nHost: hela-httpbin.fly.dev\r\n\r\n"
 
     writer.write(request.encode())
