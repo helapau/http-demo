@@ -1,5 +1,8 @@
 import asyncio
 import urllib.parse
+import re
+
+from response_parser import parse_response
 
 
 async def send_get(url):
@@ -29,8 +32,20 @@ async def send_get(url):
 
     writer.write(request.encode())
 
+    # todo: parse the response
+    """
+    extract: 
+        - status
+        - headers
+    print: HTTP version, status code (int) + reason, headers
+    """
+    lines = []
     async for line in reader:
-        print(line.decode())
+        lines.append(line.decode())
+
+    response = parse_response(lines)
+    print(response)
+
 
     writer.close()
     await writer.wait_closed()
@@ -38,7 +53,7 @@ async def send_get(url):
 
 
 if __name__ == "__main__":
-    url = input("Please type in the URL you want to visit: ")
+    # url = input("Please type in the URL you want to visit: ")
     """
     https://hela-httpbin.fly.dev/get?some=parameter&and=another
     https://hela-httpbin.fly.dev/post
@@ -47,7 +62,9 @@ if __name__ == "__main__":
     http://libsql.org/hrana-client-ts/
     https://demo.chystat.com:8443    
     """
+    url = "https://hela-httpbin.fly.dev/post"
     asyncio.run(send_get(url))
+
 
 
 
