@@ -1,18 +1,11 @@
 import asyncio
 import urllib.parse
-import re
 
 from response_parser import parse_response
+from utils import is_empty
 
 
 async def send_get(url):
-    def is_empty(p):
-        is_none = p is None
-        is_empty = False
-        if type(p) is str:
-            is_empty = len(p) == 0
-        return is_none or is_empty
-
     url = urllib.parse.urlsplit(url)
     if url.scheme == 'https':
         port = 443 if is_empty(url.port) else url.port
@@ -46,7 +39,6 @@ async def send_get(url):
     response = parse_response(lines)
     print(response)
 
-
     writer.close()
     await writer.wait_closed()
     return
@@ -62,7 +54,7 @@ if __name__ == "__main__":
     http://libsql.org/hrana-client-ts/
     https://demo.chystat.com:8443    
     """
-    url = "https://hela-httpbin.fly.dev/post"
+    url = "http://hela-httpbin.fly.dev/patch"
     asyncio.run(send_get(url))
 
 

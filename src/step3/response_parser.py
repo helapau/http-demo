@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 import re
 
+from utils import is_empty
+
 class ParseError(Exception):
     def __init__(self, message):
         self.message = message
@@ -12,28 +14,39 @@ class Response:
     status_message: field(default_factory=str)
     headers: field(default_factory=dict)
 
+    raw_body: field(default_factory=str)
+
+    def __str__(self):
+        def display_headers():
+            lines = []
+            for key in self.headers:
+                lines.append(f"\t{key}: {self.headers[key]}")
+            return "\n".join(lines)
+        return "\n".join((f"HTTP version: {self.http_version}",
+                          f"status code: {self.status_code}",
+                          f"reason: {self.status_message}",
+                          f"headers:\n {display_headers()}",
+                          f"raw body: {self.raw_body}"))
+
 
 def parse_status_line(first_line: str) -> tuple:
     # specification defines syntax: (*optional)
     # HTTP-version[SP]status-code[SP]reason*
     first_line = first_line.strip("[\r\n]")
-    # fixme - splitting the line: as soon as you find a space - stop!
-    groups = re.split(r" ", first_line)
-    if len(groups) != 2 and len(groups) != 3:
+    groups = first_line.split(" ", 1)
+    if len(groups) < 2:
         raise ParseError("Error parsing status line - expected 2 or 3 strings separated by a single SP character.")
-    protocol_groups = groups[0].split("/")
-    if len(protocol_groups) != 2:
-        raise ParseError("Error parsing status line - expected format {protocol}/{version}")
-    http_version = protocol_groups[1]
     try:
-        status_code = int(groups[1])
+        protocol, http_version = groups[0].split("/")
     except ValueError:
+        raise ParseError("Error parsing status line - expected format {protocol}/{version}")
+    code_match = re.search(r'(\d{3})', groups[1])
+    if code_match is None:
         raise ParseError("Invalid characters in HTTP status code")
-    if len(groups) == 3:
-        status_message = groups[2]
-    else:
+    status_code = code_match.group()
+    status_message = groups[1][code_match.end():].strip()
+    if is_empty(status_message):
         status_message = None
-
     return http_version, status_code, status_message
 
 def parse_headers(headers: list):
@@ -77,5 +90,7 @@ def parse_response(response_lines: list):
     headers = response_lines[0:separator_index]
     body = response_lines[separator_index + 1:]
     headers_map = parse_headers(headers)
+    if is_empty(body):
+        body = None
 
-    return Response(http_version, status_code, status_message, headers_map)
+    return Response(http_version, status_code, status_message, headers_map, body)
