@@ -1,8 +1,8 @@
 import asyncio
 import urllib.parse
 
-from response_parser import parse_response
-from utils import is_empty
+from response_parser import parse_status_line, parse_headers, parse_body
+from utils import is_empty, CRLF
 
 
 async def send_get(url):
@@ -24,20 +24,19 @@ async def send_get(url):
     )
 
     writer.write(request.encode())
+    # read until CRLF to ge the first-line (e.g. status line)
+    # continue reading until CRLF -> you may get headers
+    # what headers indicate the presence of response body? -> content-length or transfer-encoding
 
-    # todo: parse the response
-    """
-    extract: 
-        - status
-        - headers
-    print: HTTP version, status code (int) + reason, headers
-    """
-    lines = []
-    async for line in reader:
-        lines.append(line.decode())
-
-    response = parse_response(lines)
-    print(response)
+    raw_first_line = await reader.readuntil(CRLF)
+    first_line = parse_status_line(raw_first_line)
+    headers = await parse_headers(reader)
+    body = await parse_body(reader, headers)
+    print(first_line, "\n")
+    for k in headers:
+        print(k.decode(), ": ", headers[k].decode())
+    print("\n")
+    print(body)
 
     writer.close()
     await writer.wait_closed()
@@ -52,9 +51,12 @@ if __name__ == "__main__":
     http://hela-httpbin.fly.dev/status/404
     http://hela-httpbin.fly.dev/headers
     http://libsql.org/hrana-client-ts/
-    https://demo.chystat.com:8443    
+    https://demo.chystat.com:8443
+    http://hela-httpbin.fly.dev/image/jpeg
+    http://hela-httpbin.fly.dev/cookies
+    http://hela-httpbin.fly.dev/brotli    
     """
-    url = "http://hela-httpbin.fly.dev/patch"
+    url = "http://hela-httpbin.fly.dev/html"
     asyncio.run(send_get(url))
 
 
