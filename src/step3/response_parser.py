@@ -43,10 +43,10 @@ async def parse_headers(reader: StreamReader):
         line = await reader.readuntil(CRLF)
         is_headers_end = len(line.strip(CRLF)) == 0
 
-    result = {}
+    headers_mapping = {}
     # syntax: field-name[space][:][space]value
     if len(raw_headers) == 0:
-        return result
+        return headers_mapping
     # might be any number of LWS around the `:` but a single space is preferred
     pattern = re.compile(br'(?:\s*:\s*)')
     for line in raw_headers:
@@ -55,9 +55,11 @@ async def parse_headers(reader: StreamReader):
             # found a key-value pair
             key = groups[0].strip().lower()
             value = groups[1].strip()
-            if key not in result:
-                result[key] = value
-    return result
+            if key not in headers_mapping:
+                headers_mapping[key] = [value]
+            else:
+                headers_mapping[key].append(value)
+    return headers_mapping
 
 
 async def parse_body(reader: StreamReader, headers: dict):
