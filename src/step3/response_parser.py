@@ -71,7 +71,7 @@ async def parse_body(reader: StreamReader, headers: dict):
         raise ParseError("Header `transfer-encoding` is present!")
     content_length = None
     if b"content-length" in headers:
-        content_length = int(headers[b"content-length"].decode())
+        content_length = int(headers[b"content-length"][0].decode())
     if content_length is not None:
         body = await reader.read(content_length)
     else:

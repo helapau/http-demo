@@ -34,7 +34,7 @@ async def send_get(url):
     body = await parse_body(reader, headers)
     print(first_line, "\n")
     for k in headers:
-        print(k.decode(), ": ", headers[k].decode())
+        print(k.decode(), ": ", ", ".join([v.decode() for v in headers[k]]))
     print("\n")
     print(body)
 
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     http://hela-httpbin.fly.dev/cookies
     http://hela-httpbin.fly.dev/brotli    
     """
-    url = "http://hela-httpbin.fly.dev/html"
+    url = "http://hela-httpbin.fly.dev/image/svg"
     asyncio.run(send_get(url))
 
 
