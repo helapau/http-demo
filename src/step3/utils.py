@@ -6,3 +6,8 @@ def is_empty(p):
     return is_none or is_empty
 
 CRLF = b"\r\n"
+
+def print_headers(headers: dict) -> None:
+    for k in headers:
+        print(k.decode(), ": ", ", ".join([v.decode() for v in headers[k]]))
+    print("\n")

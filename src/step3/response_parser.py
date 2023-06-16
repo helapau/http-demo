@@ -11,9 +11,22 @@ class ParseError(Exception):
 
 
 StatusLine = namedtuple("StatusLine", ['http_version', 'status_code', 'reason'])
+RequestLine = namedtuple("RequestLine", ['method', 'request_target', 'http_version'])
 
 
-def parse_status_line(first_line: bytes) -> tuple:
+def convert_first_line_to_bytes(line) -> bytes:
+    # line is StatusLine or RequestLine
+    return b" ".join(line) + b"\r\n"
+
+
+def convert_headers_mapping_to_bytes(headers: dict) -> bytes:
+    result = []
+    for k in headers:
+        result.append(bytes(f"{k}:{headers[k]}\r\n", 'utf-8'))
+    return b"".join(result)
+
+
+def parse_status_line(first_line: bytes) -> StatusLine:
     # specification defines syntax: (*optional)
     # HTTP-version[SP]status-code[SP]reason*
     first_line = first_line.strip(b"[\r\n]")
@@ -34,6 +47,16 @@ def parse_status_line(first_line: bytes) -> tuple:
     return StatusLine(http_version, status_code, status_message)
 
 
+def parse_request_line(request_line: bytes) -> RequestLine:
+    # method[SP]request-target[SP]HTTP-version
+    # example: GET / HTTP/1.0
+    request_line = request_line.strip(b"[\r\n]")
+    groups = request_line.split(b" ")
+    if len(groups) < 3:
+        raise ParseError("Error parsing request line - expected 2 strings separated by a single SP character.")
+    return RequestLine(*groups)
+
+
 async def parse_headers(reader: StreamReader):
     raw_headers = []
     line = await reader.readuntil(CRLF)
@@ -48,6 +71,7 @@ async def parse_headers(reader: StreamReader):
     if len(raw_headers) == 0:
         return headers_mapping
     # might be any number of LWS around the `:` but a single space is preferred
+    # LWS - linear white space (any number of spaces or \t)
     pattern = re.compile(br'(?:\s*:\s*)')
     for line in raw_headers:
         groups = re.split(pattern, line)

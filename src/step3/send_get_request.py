@@ -2,7 +2,7 @@ import asyncio
 import urllib.parse
 
 from response_parser import parse_status_line, parse_headers, parse_body
-from utils import is_empty, CRLF
+from utils import is_empty, CRLF, print_headers
 
 
 async def send_get(url):
@@ -33,9 +33,7 @@ async def send_get(url):
     headers = await parse_headers(reader)
     body = await parse_body(reader, headers)
     print(first_line, "\n")
-    for k in headers:
-        print(k.decode(), ": ", ", ".join([v.decode() for v in headers[k]]))
-    print("\n")
+    print_headers(headers)
     print(body)
 
     writer.close()
