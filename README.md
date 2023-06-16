@@ -7,6 +7,7 @@ TCP client and server
 Send HTTP GET request over TCP
 
 ## step 3
+Sending more requests and parsing the response.
 
 ## Simulate a cross site request forgery attack:
 Open the browser and navigate to `127.0.0.1:9999/login` to receive a cookie sessionId=1234.
