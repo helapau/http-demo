@@ -1,6 +1,7 @@
 import asyncio
 import datetime as dt
 from pathlib import Path
+import traceback
 
 from step3.utils import CRLF, print_headers
 import common
@@ -51,19 +52,23 @@ async def handle_pay(reader, writer):
     return
 
 async def handler(reader, writer):
-    raw_request_line = await reader.readuntil(CRLF)
-    request_line = parse_request_line(raw_request_line)
+    try:
+        raw_request_line = await reader.readuntil(CRLF)
+        request_line = parse_request_line(raw_request_line)
 
-    if request_line.method == b'GET' and request_line.request_target == b"/login":
-        await handle_login(reader, writer)
-    elif request_line.method == b'POST' and request_line.request_target == b'/pay':
-        await handle_pay(reader, writer)
-    else:
-        await common.handle_not_found(writer)
+        if request_line.method == b'GET' and request_line.request_target == b"/login":
+            await handle_login(reader, writer)
+        elif request_line.method == b'POST' and request_line.request_target == b'/pay':
+            await handle_pay(reader, writer)
+        else:
+            await common.handle_not_found(writer)
+    except Exception:
+        await common.handle_internal_server_error(writer, traceback.format_exc(5))
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        return
 
-    writer.close()
-    await writer.wait_closed()
-    return
 
 
 async def main():

@@ -1,6 +1,7 @@
 import asyncio
 from pathlib import Path
 import datetime as dt
+import traceback
 
 import common
 from step3.utils import CRLF, print_headers
@@ -35,18 +36,21 @@ async def handle_post(reader, writer):
     return
 
 async def handler(reader, writer):
-    raw_request_line = await reader.readuntil(CRLF)
-    request_line = parse_request_line(raw_request_line)
-    if request_line.method == b'GET':
-        await handle_get(writer)
-    elif request_line.method == b'POST':
-        await handle_post(reader, writer)
-    else:
-        await common.handle_not_found(writer)
-
-    writer.close()
-    await writer.wait_closed()
-    return
+    try:
+        raw_request_line = await reader.readuntil(CRLF)
+        request_line = parse_request_line(raw_request_line)
+        if request_line.method == b'GET':
+            await handle_get(writer)
+        elif request_line.method == b'POST':
+            await handle_post(reader, writer)
+        else:
+            await common.handle_not_found(writer)
+    except Exception:
+        await common.handle_internal_server_error(writer, traceback.format_exc(5))
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        return
 
 async def main():
     server = await asyncio.start_server(handler, 'localhost', 9998)
