@@ -1,29 +1,26 @@
 ### Learn HTTP
 
-## step 1
-TCP client and server 
+## talking over TCP
+TCP client and server - just sending bytes.
 
-## step2
-Send HTTP GET request over TCP
+## httpGET
+Send HTTP GET request over TCP. HTTP is text!
 
-## step 3
+## more HTTP
 Sending more requests and parsing the response.
 
-## Simulate a cross site request forgery attack:
-Open the browser and navigate to `127.0.0.1:9999/login` to receive a cookie sessionId=1234.
-In another tab, navigate to `localhost:9998/` here are two buttons. 
-The first one simulates the attack - it sends a POST request to `127.0.0.1:9999/pay` 
-and browser sends the sessionId cookie because request was made to the domain `127.0.0.1` 
-where the cookie belongs. 
-The other button only sends POST to the current domain `localhost` - check that the sessionId cookie 
-from `127.0.0.1` is *not* sent with the request.
+## cross-site
+Explore cookies: if server includes header field `Set-Cookie` the client then includes the cookie in every subsequent request.
+Navigating to `127.0.0.1:9999/login`, there are some scenarios for the CSRF attack.
+Secure web browser implements the same-origin policy (same origin = schema, host & port) preventing the cookie to be shared
+in the following examples:
+- on load, a XMLHttpRequest is sent asynchronously (it *is* sent but without the cookie) - see console for message 
+*Cross-Origin request blocked*
+- `<form>` with `target` attribute set to a hidden iframe - cookie is not sent thanks to ???
+Submitting form with action set to the vulnerable endpoint sends the cookie - but also opens the endpoint in a new tab.
 
 Notes:
 - Cookies do not provide isolation by port. 
-- instead of `localhost` domain name for the evil site, we could have used alo `127.0.0.2`, `127.0.0.3`, 
+- instead of `localhost` domain name for the evil site, we could have used also `127.0.0.2`, `127.0.0.3`, 
    it would also be a different address
-
-Todos/fixmes:
-- Exceptions?? 
-- after the "attack" button is clicked/form is submitted, how to prevent the page from redirecting?
 

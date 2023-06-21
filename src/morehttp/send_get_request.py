@@ -1,7 +1,7 @@
 import asyncio
 import urllib.parse
 
-from response_parser import parse_status_line, parse_headers, parse_body
+from message_parsing import parse_status_line, parse_headers, parse_body
 from utils import is_empty, CRLF, print_headers
 
 

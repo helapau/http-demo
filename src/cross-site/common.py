@@ -1,7 +1,7 @@
 import datetime as dt
 
-from response_parser import convert_first_line_to_bytes, StatusLine, convert_headers_mapping_to_bytes
-from step3.utils import CRLF
+from message_parsing  import convert_first_line_to_bytes, StatusLine, convert_headers_mapping_to_bytes
+from morehttp.utils import CRLF
 
 
 async def handle_not_found(writer):
