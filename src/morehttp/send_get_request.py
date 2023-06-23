@@ -18,7 +18,7 @@ async def send_get(url):
 
     query = "" if is_empty(url.query) else "?" + url.query
     request = (
-        f"GET {url.path or '/'}{query} HTTP/1.0\r\n" # request line
+        f"GET {url.path or '/'}{query} HTTP/1.1\r\n" # request line
         f"Host: {url.netloc}\r\n" # headers
         "\r\n" # there is no body - this is the end
     )
@@ -30,12 +30,12 @@ async def send_get(url):
 
     raw_first_line = await reader.readuntil(CRLF)
     first_line = parse_status_line(raw_first_line)
-    headers = await parse_headers(reader)
-    body = await parse_body(reader, headers)
     print(first_line, "\n")
+    headers = await parse_headers(reader)
     print_headers(headers)
-    print(body)
-
+    body = await parse_body(reader, headers)
+    print(body) if body is not None else None
+    # todo: client should only close the connection if there isn't `connection: keep-alive` header!
     writer.close()
     await writer.wait_closed()
     return
@@ -53,8 +53,16 @@ if __name__ == "__main__":
     http://hela-httpbin.fly.dev/image/jpeg
     http://hela-httpbin.fly.dev/cookies
     http://hela-httpbin.fly.dev/brotli    
+    
+    
     """
-    url = "http://hela-httpbin.fly.dev/image/svg"
+    url = "https://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx" # sadly - there isn't header "transfer-encoding
+    # url = "http://hela-httpbin.fly.dev/stream-bytes/10" # this also isn't chunked - instead it has content-type as octet stream
+    # browser shows response header `Transfer-Encoding: chunked` but it doesn't show up here :(
+    # ! had to change HTTP version to 1.1!
+    #  Before 1.1, there was no chunked encoding, and after version 1.1 chunked encoding has been deprecated.
+    # url = "http://anglesharp.azurewebsites.net/Chunked"
+
     asyncio.run(send_get(url))
 
 

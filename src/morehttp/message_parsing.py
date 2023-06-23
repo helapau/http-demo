@@ -2,7 +2,7 @@ import re
 from asyncio.streams import StreamReader
 from collections import namedtuple
 
-from utils import is_empty, CRLF
+from utils import is_empty, CRLF, print_headers
 
 
 class ParseError(Exception):
@@ -85,6 +85,31 @@ async def parse_headers(reader: StreamReader):
                 headers_mapping[key].append(value)
     return headers_mapping
 
+async def transfer_encoding(reader: StreamReader, transfer_codings: list):
+    transfer_codings = [c.decode() for c in transfer_codings]
+    if len(transfer_codings) == 1 and transfer_codings[0] == "chunked":
+        return await chunked_coding(reader)
+    else:
+        raise ParseError("Error - we only know how to handle Transfer-Encoding: chunked!")
+
+async def chunked_coding(reader: StreamReader):
+    is_last_chunk = False
+    total_data = []
+    trailers = {}
+    while not is_last_chunk:
+        # ignore chunk-ext; it's something the client-server agree on?
+        chunk_first_line = await reader.readuntil(CRLF) # size-in-bytes[SP]*chunk-ext[SP]CRLF
+        chunk_first_line_parts = chunk_first_line.split(b" ", 1)
+        chunk_size = int(chunk_first_line_parts[0].strip(CRLF).decode(), 16)
+        is_last_chunk = chunk_size == 0
+        chunk_data = await reader.read(chunk_size)
+        print(chunk_data)
+        total_data.append(chunk_data)
+        trailers = await parse_headers(reader)
+    print("Finishing transfer of chunks. Received trailers: \n") if len(trailers) > 0 else None
+    print_headers(trailers)
+    # return b"".join(total_data)
+    return
 
 async def parse_body(reader: StreamReader, headers: dict):
     # if content-length is present, it is some N -> read N bytes after the second CRLF
@@ -92,7 +117,7 @@ async def parse_body(reader: StreamReader, headers: dict):
     # if both of these headers are missing -> continue reading until connection is closed
     # does the server always close TCP connection if it has nothing more to send?
     if b"transfer-encoding" in headers:
-        raise ParseError("Header `transfer-encoding` is present!")
+        return await transfer_encoding(reader, headers[b"transfer-encoding"])
     content_length = None
     if b"content-length" in headers:
         content_length = int(headers[b"content-length"][0].decode())
