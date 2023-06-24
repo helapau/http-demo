@@ -60,7 +60,7 @@ if __name__ == "__main__":
     # url = "http://hela-httpbin.fly.dev/stream-bytes/10" # this also isn't chunked - instead it has content-type as octet stream
     # browser shows response header `Transfer-Encoding: chunked` but it doesn't show up here :(
     # ! had to change HTTP version to 1.1!
-    #  Before 1.1, there was no chunked encoding, and after version 1.1 chunked encoding has been deprecated.
+    #
     # url = "http://anglesharp.azurewebsites.net/Chunked"
 
     asyncio.run(send_get(url))

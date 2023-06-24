@@ -102,13 +102,15 @@ async def chunked_coding(reader: StreamReader):
         chunk_first_line_parts = chunk_first_line.split(b" ", 1)
         chunk_size = int(chunk_first_line_parts[0].strip(CRLF).decode(), 16)
         is_last_chunk = chunk_size == 0
+        # each chunk should be terminated by CRLF however readuntil(CRLF) doesn't work
+        # does chunk_size include CRLF?
         chunk_data = await reader.read(chunk_size)
         print(chunk_data)
         total_data.append(chunk_data)
         trailers = await parse_headers(reader)
     print("Finishing transfer of chunks. Received trailers: \n") if len(trailers) > 0 else None
     print_headers(trailers)
-    # return b"".join(total_data)
+    print("total data: ", b"".join(total_data))
     return
 
 async def parse_body(reader: StreamReader, headers: dict):
