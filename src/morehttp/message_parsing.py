@@ -93,21 +93,22 @@ async def transfer_encoding(reader: StreamReader, transfer_codings: list):
         raise ParseError("Error - we only know how to handle Transfer-Encoding: chunked!")
 
 async def chunked_coding(reader: StreamReader):
-    is_last_chunk = False
     total_data = []
     trailers = {}
-    while not is_last_chunk:
+    while True:
         # ignore chunk-ext; it's something the client-server agree on?
         chunk_first_line = await reader.readuntil(CRLF) # size-in-bytes[SP]*chunk-ext[SP]CRLF
         chunk_first_line_parts = chunk_first_line.split(b" ", 1)
         chunk_size = int(chunk_first_line_parts[0].strip(CRLF).decode(), 16)
-        is_last_chunk = chunk_size == 0
-        # each chunk should be terminated by CRLF however readuntil(CRLF) doesn't work
-        # does chunk_size include CRLF?
+        if chunk_size == 0:
+            break
         chunk_data = await reader.read(chunk_size)
         print(chunk_data)
         total_data.append(chunk_data)
-        trailers = await parse_headers(reader)
+        separator_after_data = await reader.read(2)
+        if separator_after_data != CRLF:
+            raise ParseError("After each chunk data should come CRLF!")
+    trailers = await parse_headers(reader)
     print("Finishing transfer of chunks. Received trailers: \n") if len(trailers) > 0 else None
     print_headers(trailers)
     print("total data: ", b"".join(total_data))
