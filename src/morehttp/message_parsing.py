@@ -85,12 +85,14 @@ async def parse_headers(reader: StreamReader):
                 headers_mapping[key].append(value)
     return headers_mapping
 
+
 async def transfer_encoding(reader: StreamReader, transfer_codings: list):
     transfer_codings = [c.decode() for c in transfer_codings]
     if len(transfer_codings) == 1 and transfer_codings[0] == "chunked":
         return await chunked_coding(reader)
     else:
         raise ParseError("Error - we only know how to handle Transfer-Encoding: chunked!")
+
 
 async def chunked_coding(reader: StreamReader):
     total_data = []
@@ -114,6 +116,7 @@ async def chunked_coding(reader: StreamReader):
     print("total data: ", b"".join(total_data))
     return
 
+
 async def parse_body(reader: StreamReader, headers: dict):
     # if content-length is present, it is some N -> read N bytes after the second CRLF
     # if transfer-encoding is present -> throw an exception
@@ -125,7 +128,9 @@ async def parse_body(reader: StreamReader, headers: dict):
     if b"content-length" in headers:
         content_length = int(headers[b"content-length"][0].decode())
     if content_length is not None:
-        body = await reader.read(content_length)
+        # reader.read(content_length) would return *at most* content_length bytes as soon as they are available!
+        # which means it doesn't wait to read *all of* content_length; could return incomplete body!
+        body = await reader.readexactly(content_length)
     else:
         body = await reader.read()
     return body

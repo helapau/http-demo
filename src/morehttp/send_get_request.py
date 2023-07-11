@@ -32,8 +32,8 @@ class Connection:
 
     @staticmethod
     def should_close(first_line, headers) -> tuple:
-        if b"1.0" in first_line.http_version:
-            return True, "Server uses HTTP/1.0"
+        if b"1.0" in first_line.http_version and b"connection" not in headers:
+            return True, "Server uses HTTP/1.0 and Connection header is missing"
         if b"close" in headers[b"connection"]:
             return True, "`Connection: close` in headers"
         return False, ""
@@ -44,6 +44,7 @@ class Connection:
         request = (
             f"GET {url.path or '/'}{query} HTTP/1.1\r\n" # request line
             f"Host: {url.netloc}\r\n" # host is the only mandatory header in HTTP/1.1
+            f"Connection: keep-alive\r\n"
             "\r\n" # there is no body - this is the end
         )
         self.writer.write(request.encode())
@@ -74,23 +75,22 @@ class Client:
             reader, writer = await asyncio.open_connection(
                 url.hostname, port)
         self._connection = Connection(reader, writer, url.scheme, url.hostname, url.port)
+        print("Opened new connection")
+
+    async def _close_connection(self, reason):
+        await self._connection.close(reason)
+        self._connection = None
+        print("Closed connection")
 
     async def get(self, url):
-        if self._connection is None:
+        if self._connection is None or not self._connection.can_use(url):
             await self._open_connection(url)
 
-        if self._connection.closed:
-            print("Connection is closed. Reason: " + self._connection.reason_closed)
-            return
+        first_line, headers = await self._connection.send_request(url)
+        should_close, reason = Connection.should_close(first_line, headers)
+        if should_close:
+            await self._close_connection(reason)
 
-        if self._connection.can_use(url):
-            first_line, headers = await self._connection.send_request(url)
-            should_close, reason = Connection.should_close(first_line, headers)
-            if should_close:
-                await self._connection.close(reason)
-        else:
-            await self._connection.close(None)
-            print("Connection cannot be re-used because request is being made to a different server.")
 
 async def main():
     """
@@ -101,10 +101,10 @@ async def main():
     """
 
     requests_same_server = [
+        "http://hela-httpbin.fly.dev/image/svg",
         "http://hela-httpbin.fly.dev/get?howareyou=good",
-        "http://hela-httpbin.fly.dev/cookies",
-        "http://hela-httpbin.fly.dev/image/jpeg",
-        "http://hela-httpbin.fly.dev/stream-bytes/10" # chunked encoding
+        "http://hela-httpbin.fly.dev/stream-bytes/100", # chunked encoding
+        "http://hela-httpbin.fly.dev/post"
     ]
 
     # should fail
@@ -114,8 +114,12 @@ async def main():
     ]
 
     client = Client()
-    for r in requests_different_server:
+
+    image = ["http://hela-httpbin.fly.dev/image/jpeg"]
+
+    for r in requests_same_server:
         await client.get(r)
+
 
 
 if __name__ == "__main__":
